@@ -15,6 +15,7 @@
             --accent: #eee;
             --input-bg: #fafafa;
             --radius: 15px;
+            --sub-text: #666;
         }
 
         body {
@@ -37,7 +38,7 @@
         }
 
         h1 { font-size: 1.8rem; font-weight: 800; margin-bottom: 8px; letter-spacing: -1px; }
-        .subtitle { font-size: 0.85rem; color: #666; font-weight: 500; margin-bottom: 30px; }
+        .subtitle { font-size: 0.85rem; color: var(--sub-text); font-weight: 500; margin-bottom: 30px; }
 
         .input-container {
             position: relative;
@@ -50,7 +51,7 @@
             width: 100%;
             min-height: 120px;
             padding: 15px;
-            padding-bottom: 40px; /* Space for clr button */
+            padding-bottom: 40px;
             border: 2px solid var(--accent);
             border-radius: var(--radius);
             background: var(--input-bg);
@@ -63,11 +64,10 @@
             -webkit-text-fill-color: var(--main) !important;
             opacity: 1 !important;
             font-family: inherit;
-            overflow: hidden; /* For auto-expand */
+            overflow: hidden;
             line-height: 1.4;
         }
 
-        /* iOS Placeholder Fix */
         textarea::-webkit-input-placeholder { -webkit-text-fill-color: #bbb; opacity: 1; }
         textarea::placeholder { color: #bbb; opacity: 1; }
 
@@ -86,15 +86,15 @@
         }
         .clear-btn.active { display: block; }
 
-        /* Output Grid: Hidden when empty */
         .output-grid {
             display: none;
             grid-template-columns: 1fr;
-            gap: 15px;
+            gap: 12px;
             margin-top: 20px;
         }
         .output-grid.active { display: grid; }
 
+        /* Clickable Box UI */
         .output-card {
             background: #fff;
             border: 1px solid #f0f0f0;
@@ -102,7 +102,12 @@
             padding: 15px;
             text-align: left;
             box-shadow: 0 2px 5px rgba(0,0,0,0.02);
+            cursor: pointer;
+            transition: transform 0.1s, border-color 0.2s;
+            position: relative;
+            -webkit-tap-highlight-color: transparent;
         }
+        .output-card:active { transform: scale(0.98); }
 
         .output-header {
             display: flex;
@@ -111,6 +116,8 @@
             margin-bottom: 8px;
         }
         .output-label { font-size: 0.7rem; font-weight: 800; color: #aaa; text-transform: uppercase; }
+        .copy-status { font-size: 0.7rem; font-weight: 800; color: #4CAF50; opacity: 0; transition: opacity 0.2s; }
+        .copy-status.show { opacity: 1; }
 
         .output-text {
             width: 100%;
@@ -120,26 +127,13 @@
             border-radius: 10px;
             font-size: 0.85rem;
             line-height: 1.5;
-            color: var(--main) !important;
+            color: var(--main);
             word-break: break-all;
             white-space: pre-wrap;
             min-height: 1.2rem;
-            -webkit-text-fill-color: var(--main) !important;
-            opacity: 1 !important;
             font-family: monospace;
             box-sizing: border-box;
-        }
-
-        .copy-btn {
-            background: var(--main);
-            color: #fff;
-            border: none;
-            padding: 5px 12px;
-            border-radius: 10px;
-            font-size: 0.7rem;
-            font-weight: 700;
-            cursor: pointer;
-            transition: background 0.2s;
+            pointer-events: none; /* Click goes to card */
         }
 
         footer { margin-top: 50px; font-size: 11px; color: #aaa; line-height: 1.8; }
@@ -171,43 +165,43 @@
 
 <div class="container">
     <h1>Code Scrubber</h1>
-    <p class="subtitle">1-Click Escape & Unescape for Developers.</p>
+    <p class="subtitle">Tap any box to Copy results.</p>
 
     <div class="input-container">
         <label class="label">Paste Text Here</label>
-        <textarea id="rawInput" placeholder='e.g. <div class="test"> or &lt;div&gt;' oninput="processText()"></textarea>
+        <textarea id="rawInput" placeholder='e.g. <div class="test"> or \"escaped text\"' oninput="processText()"></textarea>
         <button id="clearBtn" class="clear-btn" onclick="clearAll()">clr</button>
     </div>
 
     <div id="outputGrid" class="output-grid">
-        <div class="output-card">
+        <div class="output-card" onclick="copyResult(this, 'htmlEsc')">
             <div class="output-header">
                 <span class="output-label">HTML Escape</span>
-                <button class="copy-btn" onclick="copyResult(this, 'htmlEsc')">Copy</button>
+                <span class="copy-status">Copied!</span>
             </div>
             <div id="htmlEsc" class="output-text"></div>
         </div>
 
-        <div class="output-card">
+        <div class="output-card" onclick="copyResult(this, 'htmlUnesc')">
             <div class="output-header">
                 <span class="output-label">HTML Unescape</span>
-                <button class="copy-btn" onclick="copyResult(this, 'htmlUnesc')">Copy</button>
+                <span class="copy-status">Copied!</span>
             </div>
             <div id="htmlUnesc" class="output-text"></div>
         </div>
 
-        <div class="output-card">
+        <div class="output-card" onclick="copyResult(this, 'jsEsc')">
             <div class="output-header">
                 <span class="output-label">JS / JSON Escape</span>
-                <button class="copy-btn" onclick="copyResult(this, 'jsEsc')">Copy</button>
+                <span class="copy-status">Copied!</span>
             </div>
             <div id="jsEsc" class="output-text"></div>
         </div>
 
-        <div class="output-card">
+        <div class="output-card" onclick="copyResult(this, 'jsUnesc')">
             <div class="output-header">
                 <span class="output-label">JS / JSON Unescape</span>
-                <button class="copy-btn" onclick="copyResult(this, 'jsUnesc')">Copy</button>
+                <span class="copy-status">Copied!</span>
             </div>
             <div id="jsUnesc" class="output-text"></div>
         </div>
@@ -238,6 +232,7 @@
     const inputArea = document.getElementById('rawInput');
     const outputGrid = document.getElementById('outputGrid');
     const clearBtn = document.getElementById('clearBtn');
+    let copyTimers = {};
 
     function processText() {
         const input = inputArea.value;
@@ -246,7 +241,7 @@
         inputArea.style.height = 'auto';
         inputArea.style.height = inputArea.scrollHeight + 'px';
 
-        if (!input) {
+        if (!input.trim()) {
             outputGrid.classList.remove('active');
             clearBtn.classList.remove('active');
             return;
@@ -255,7 +250,7 @@
         outputGrid.classList.add('active');
         clearBtn.classList.add('active');
 
-        // HTML Escape
+        // 1. HTML Escape
         document.getElementById('htmlEsc').innerText = input
             .replace(/&/g, "&amp;")
             .replace(/</g, "&lt;")
@@ -263,46 +258,63 @@
             .replace(/"/g, "&quot;")
             .replace(/'/g, "&#039;");
 
-        // HTML Unescape
+        // 2. HTML Unescape
         const doc = new DOMParser().parseFromString(input, 'text/html');
         document.getElementById('htmlUnesc').innerText = doc.documentElement.textContent;
 
-        // JS Escape
+        // 3. JS Escape
         document.getElementById('jsEsc').innerText = JSON.stringify(input).slice(1, -1);
 
-        // JS Unescape
+        // 4. JS Unescape (Improved Precision)
+        let unescaped = input;
         try {
-            if (input.includes('\\')) {
-                document.getElementById('jsUnesc').innerText = input.replace(/\\n/g, '\n').replace(/\\"/g, '"').replace(/\\'/g, "'").replace(/\\\\/g, '\\').replace(/\\t/g, '\t');
-            } else {
-                document.getElementById('jsUnesc').innerText = input;
-            }
+            // Match common backslash escapes
+            unescaped = input
+                .replace(/\\n/g, '\n')
+                .replace(/\\r/g, '\r')
+                .replace(/\\t/g, '\t')
+                .replace(/\\"/g, '"')
+                .replace(/\\'/g, "'")
+                .replace(/\\\\/g, '\\');
         } catch (e) {
-            document.getElementById('jsUnesc').innerText = input;
+            unescaped = input;
         }
+        document.getElementById('jsUnesc').innerText = unescaped;
     }
 
     function clearAll() {
         inputArea.value = '';
         inputArea.style.height = '120px';
-        processText();
+        outputGrid.classList.remove('active');
+        clearBtn.classList.remove('active');
         inputArea.focus();
     }
 
-    async function copyResult(btn, id) {
+    async function copyResult(card, id) {
         const text = document.getElementById(id).innerText;
         if (!text) return;
+
         try {
             await navigator.clipboard.writeText(text);
-            const originalText = btn.innerText;
-            btn.innerText = 'Copied!';
-            btn.style.background = '#4CAF50';
-            setTimeout(() => {
-                btn.innerText = originalText;
-                btn.style.background = 'var(--main)';
+            
+            const status = card.querySelector('.copy-status');
+            
+            // Handle timer collision (for double-taps)
+            if (copyTimers[id]) {
+                clearTimeout(copyTimers[id]);
+            }
+
+            status.classList.add('show');
+            card.style.borderColor = '#4CAF50';
+
+            copyTimers[id] = setTimeout(() => {
+                status.classList.remove('show');
+                card.style.borderColor = '#f0f0f0';
+                delete copyTimers[id];
             }, 1000);
+            
         } catch (err) {
-            console.error(err);
+            console.error('Failed to copy', err);
         }
     }
 
