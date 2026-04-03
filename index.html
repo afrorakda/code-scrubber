@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Code Scrubber</title>
+    
+    <link rel="icon" href="image_67.png">
+    <link rel="apple-touch-icon" href="image_67.png">
+
+    <style>
+        :root {
+            --main: #333;
+            --bg: #fff;
+            --accent: #eee;
+            --input-bg: #fafafa;
+            --radius: 15px;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: var(--bg);
+            color: var(--main);
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            min-height: 100vh;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 420px;
+            padding: 40px 20px;
+            box-sizing: border-box;
+            text-align: center;
+        }
+
+        h1 { font-size: 1.8rem; font-weight: 800; margin-bottom: 8px; letter-spacing: -1px; }
+        .subtitle { font-size: 0.85rem; color: #666; font-weight: 500; margin-bottom: 30px; }
+
+        /* Input Area with iOS Fix */
+        .input-container {
+            margin-bottom: 25px;
+            text-align: left;
+        }
+        .label { font-size: 0.75rem; font-weight: 800; margin-left: 5px; margin-bottom: 5px; display: block; color: #999; text-transform: uppercase; }
+        
+        textarea, input {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid var(--accent);
+            border-radius: var(--radius);
+            background: var(--input-bg);
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--main) !important;
+            box-sizing: border-box;
+            outline: none;
+            -webkit-appearance: none;
+            -webkit-text-fill-color: var(--main) !important;
+            opacity: 1 !important;
+            font-family: inherit;
+        }
+        textarea { height: 120px; resize: none; margin-bottom: 10px; }
+
+        /* Output Cards */
+        .output-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .output-card {
+            background: #fff;
+            border: 1px solid #f0f0f0;
+            border-radius: var(--radius);
+            padding: 15px;
+            text-align: left;
+            position: relative;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.02);
+        }
+
+        .output-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        .output-label { font-size: 0.7rem; font-weight: 800; color: #aaa; text-transform: uppercase; }
+
+        .output-text {
+            width: 100%;
+            background: var(--input-bg);
+            border: none;
+            padding: 10px;
+            border-radius: 10px;
+            font-size: 0.9rem;
+            color: var(--main) !important;
+            word-break: break-all;
+            white-space: pre-wrap;
+            min-height: 1.2rem;
+            -webkit-text-fill-color: var(--main) !important;
+            opacity: 1 !important;
+            font-family: monospace;
+        }
+
+        .copy-btn {
+            background: var(--main);
+            color: #fff;
+            border: none;
+            padding: 4px 12px;
+            border-radius: 10px;
+            font-size: 0.7rem;
+            font-weight: 700;
+            cursor: pointer;
+        }
+        .copy-btn:active { transform: scale(0.95); opacity: 0.8; }
+
+        /* Footer & Buttons */
+        footer { margin-top: 50px; font-size: 11px; color: #aaa; line-height: 1.8; }
+        footer a { color: inherit; text-decoration: none; }
+        .footer-btns { margin-top: 30px; }
+        .kofi-btn {
+            display: inline-block; background: var(--main); color: #fff;
+            padding: 12px 25px; border-radius: var(--radius);
+            text-decoration: none; font-weight: bold; font-size: 14px; margin-bottom: 12px;
+        }
+        .home-btn {
+            display: block; width: 60%; margin: 0 auto; background: var(--accent);
+            color: var(--main); border: none; padding: 10px;
+            border-radius: var(--radius); font-weight: 700; font-size: 13px; cursor: pointer;
+        }
+
+        /* Modal */
+        #modal {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.6); align-items: center; justify-content: center; z-index: 100;
+        }
+        .modal-content {
+            background: #fff; width: 85%; max-width: 320px; padding: 30px;
+            border-radius: var(--radius); text-align: left; position: relative;
+        }
+        .close-x { position: absolute; top: 15px; right: 20px; font-size: 20px; color: #ccc; cursor: pointer; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Code Scrubber</h1>
+    <p class="subtitle">1-Click Escape & Unescape for Developers.</p>
+
+    <div class="input-container">
+        <label class="label">Paste Text Here</label>
+        <textarea id="rawInput" placeholder='e.g. <div class="test"> or &lt;div&gt;' oninput="processText()"></textarea>
+    </div>
+
+    <div class="output-grid">
+        <div class="output-card">
+            <div class="output-header">
+                <span class="output-label">HTML Escape</span>
+                <button class="copy-btn" onclick="copyResult('htmlEsc')">Copy</button>
+            </div>
+            <div id="htmlEsc" class="output-text"></div>
+        </div>
+
+        <div class="output-card">
+            <div class="output-header">
+                <span class="output-label">HTML Unescape</span>
+                <button class="copy-btn" onclick="copyResult('htmlUnesc')">Copy</button>
+            </div>
+            <div id="htmlUnesc" class="output-text"></div>
+        </div>
+
+        <div class="output-card">
+            <div class="output-header">
+                <span class="output-label">JS / JSON Escape</span>
+                <button class="copy-btn" onclick="copyResult('jsEsc')">Copy</button>
+            </div>
+            <div id="jsEsc" class="output-text"></div>
+        </div>
+
+        <div class="output-card">
+            <div class="output-header">
+                <span class="output-label">JS / JSON Unescape</span>
+                <button class="copy-btn" onclick="copyResult('jsUnesc')">Copy</button>
+            </div>
+            <div id="jsUnesc" class="output-text"></div>
+        </div>
+    </div>
+
+    <div class="footer-btns">
+        <a href="https://ko-fi.com/afrorakda" target="_blank" class="kofi-btn">☕️buy me a coffee</a>
+        <button class="home-btn" onclick="showModal()">Add to Home Screen</button>
+    </div>
+
+    <footer>
+        <div>No login / No tracking / No ads / Browser only</div>
+        <div><a href="https://afrorakda.com/privacy/">Privacy Policy</a> / afrorakda © 2026</div>
+    </footer>
+</div>
+
+<div id="modal" onclick="hideModal()">
+    <div class="modal-content" onclick="event.stopPropagation()">
+        <span class="close-x" onclick="hideModal()">×</span>
+        <h3>📱 Install</h3>
+        <p>Add to your home screen.</p>
+        <p>🍏 <strong>iPhone (Safari):</strong><br>Tap Share, then Add to Home Screen.</p>
+        <p>🤖 <strong>Android (Chrome):</strong><br>Tap Menu (⋮), then Add to Home Screen.</p>
+    </div>
+</div>
+
+<script>
+    function processText() {
+        const input = document.getElementById('rawInput').value;
+        if (!input) {
+            clearOutputs();
+            return;
+        }
+
+        // HTML Escape
+        document.getElementById('htmlEsc').innerText = input
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
+
+        // HTML Unescape
+        const doc = new DOMParser().parseFromString(input, 'text/html');
+        document.getElementById('htmlUnesc').innerText = doc.documentElement.textContent;
+
+        // JS Escape (Backslash quotes and newlines)
+        document.getElementById('jsEsc').innerText = JSON.stringify(input).slice(1, -1);
+
+        // JS Unescape (Reverse of stringify style)
+        try {
+            // Wrapping in quotes to attempt a JSON parse if it looks like an escaped string
+            document.getElementById('jsUnesc').innerText = JSON.parse('"' + input.replace(/"/g, '\\"') + '"').replace(/\\"/g, '"').replace(/\\\\/g, '\\');
+            // Simple fallback for common backslash escapes if JSON parse is overkill
+            if(input.includes('\\')) {
+                 document.getElementById('jsUnesc').innerText = input.replace(/\\n/g, '\n').replace(/\\"/g, '"').replace(/\\'/g, "'").replace(/\\\\/g, '\\');
+            }
+        } catch (e) {
+            document.getElementById('jsUnesc').innerText = input;
+        }
+    }
+
+    function clearOutputs() {
+        ['htmlEsc', 'htmlUnesc', 'jsEsc', 'jsUnesc'].forEach(id => {
+            document.getElementById(id).innerText = '';
+        });
+    }
+
+    async function copyResult(id) {
+        const text = document.getElementById(id).innerText;
+        if (!text) return;
+        try {
+            await navigator.clipboard.writeText(text);
+            const btn = event.target;
+            const originalText = btn.innerText;
+            btn.innerText = 'Copied!';
+            btn.style.background = '#4CAF50';
+            setTimeout(() => {
+                btn.innerText = originalText;
+                btn.style.background = 'var(--main)';
+            }, 1000);
+        } catch (err) {
+            console.error('Failed to copy', err);
+        }
+    }
+
+    function showModal() { document.getElementById('modal').style.display = 'flex'; }
+    function hideModal() { document.getElementById('modal').style.display = 'none'; }
+</script>
+
+</body>
+</html>
