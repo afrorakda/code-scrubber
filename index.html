@@ -44,17 +44,19 @@
             position: relative;
             margin-bottom: 25px;
             text-align: left;
+            border: 2px solid var(--accent);
+            border-radius: var(--radius);
+            background: var(--input-bg);
+            overflow: hidden;
         }
-        .label { font-size: 0.75rem; font-weight: 800; margin-left: 5px; margin-bottom: 5px; display: block; color: #999; text-transform: uppercase; }
+        .label { font-size: 0.75rem; font-weight: 800; padding: 10px 0 0 15px; display: block; color: #999; text-transform: uppercase; }
         
         textarea {
             width: 100%;
             min-height: 120px;
-            padding: 15px;
-            padding-bottom: 40px;
-            border: 2px solid var(--accent);
-            border-radius: var(--radius);
-            background: var(--input-bg);
+            padding: 10px 15px 40px 15px;
+            border: none;
+            background: transparent;
             font-size: 1rem;
             font-weight: 600;
             color: var(--main) !important;
@@ -66,16 +68,21 @@
             font-family: inherit;
             overflow: hidden;
             line-height: 1.4;
+            display: block;
         }
 
         textarea::-webkit-input-placeholder { -webkit-text-fill-color: #bbb; opacity: 1; }
         textarea::placeholder { color: #bbb; opacity: 1; }
 
+        /* Sticky Clear Button */
         .clear-btn {
-            position: absolute;
-            right: 15px;
+            position: sticky;
+            float: right;
             bottom: 10px;
-            background: none;
+            right: 15px;
+            margin-top: -30px;
+            z-index: 10;
+            background: var(--input-bg);
             border: none;
             color: #999;
             font-size: 0.85rem;
@@ -83,6 +90,7 @@
             cursor: pointer;
             padding: 5px 8px;
             display: none;
+            border-radius: 5px;
         }
         .clear-btn.active { display: block; }
 
@@ -94,7 +102,6 @@
         }
         .output-grid.active { display: grid; }
 
-        /* Clickable Box UI */
         .output-card {
             background: #fff;
             border: 1px solid #f0f0f0;
@@ -133,7 +140,7 @@
             min-height: 1.2rem;
             font-family: monospace;
             box-sizing: border-box;
-            pointer-events: none; /* Click goes to card */
+            pointer-events: none;
         }
 
         footer { margin-top: 50px; font-size: 11px; color: #aaa; line-height: 1.8; }
@@ -237,7 +244,6 @@
     function processText() {
         const input = inputArea.value;
 
-        // Auto-expand textarea
         inputArea.style.height = 'auto';
         inputArea.style.height = inputArea.scrollHeight + 'px';
 
@@ -250,7 +256,6 @@
         outputGrid.classList.add('active');
         clearBtn.classList.add('active');
 
-        // 1. HTML Escape
         document.getElementById('htmlEsc').innerText = input
             .replace(/&/g, "&amp;")
             .replace(/</g, "&lt;")
@@ -258,17 +263,13 @@
             .replace(/"/g, "&quot;")
             .replace(/'/g, "&#039;");
 
-        // 2. HTML Unescape
         const doc = new DOMParser().parseFromString(input, 'text/html');
         document.getElementById('htmlUnesc').innerText = doc.documentElement.textContent;
 
-        // 3. JS Escape
         document.getElementById('jsEsc').innerText = JSON.stringify(input).slice(1, -1);
 
-        // 4. JS Unescape (Improved Precision)
         let unescaped = input;
         try {
-            // Match common backslash escapes
             unescaped = input
                 .replace(/\\n/g, '\n')
                 .replace(/\\r/g, '\r')
@@ -296,10 +297,8 @@
 
         try {
             await navigator.clipboard.writeText(text);
-            
             const status = card.querySelector('.copy-status');
             
-            // Handle timer collision (for double-taps)
             if (copyTimers[id]) {
                 clearTimeout(copyTimers[id]);
             }
