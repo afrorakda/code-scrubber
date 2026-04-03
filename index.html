@@ -39,16 +39,18 @@
         h1 { font-size: 1.8rem; font-weight: 800; margin-bottom: 8px; letter-spacing: -1px; }
         .subtitle { font-size: 0.85rem; color: #666; font-weight: 500; margin-bottom: 30px; }
 
-        /* Input Area with iOS Fix */
         .input-container {
+            position: relative;
             margin-bottom: 25px;
             text-align: left;
         }
         .label { font-size: 0.75rem; font-weight: 800; margin-left: 5px; margin-bottom: 5px; display: block; color: #999; text-transform: uppercase; }
         
-        textarea, input {
+        textarea {
             width: 100%;
+            min-height: 120px;
             padding: 15px;
+            padding-bottom: 40px; /* Space for clr button */
             border: 2px solid var(--accent);
             border-radius: var(--radius);
             background: var(--input-bg);
@@ -61,16 +63,37 @@
             -webkit-text-fill-color: var(--main) !important;
             opacity: 1 !important;
             font-family: inherit;
+            overflow: hidden; /* For auto-expand */
+            line-height: 1.4;
         }
-        textarea { height: 120px; resize: none; margin-bottom: 10px; }
 
-        /* Output Cards */
+        /* iOS Placeholder Fix */
+        textarea::-webkit-input-placeholder { -webkit-text-fill-color: #bbb; opacity: 1; }
+        textarea::placeholder { color: #bbb; opacity: 1; }
+
+        .clear-btn {
+            position: absolute;
+            right: 15px;
+            bottom: 10px;
+            background: none;
+            border: none;
+            color: #999;
+            font-size: 0.85rem;
+            font-weight: 800;
+            cursor: pointer;
+            padding: 5px 8px;
+            display: none;
+        }
+        .clear-btn.active { display: block; }
+
+        /* Output Grid: Hidden when empty */
         .output-grid {
-            display: grid;
+            display: none;
             grid-template-columns: 1fr;
             gap: 15px;
             margin-top: 20px;
         }
+        .output-grid.active { display: grid; }
 
         .output-card {
             background: #fff;
@@ -78,7 +101,6 @@
             border-radius: var(--radius);
             padding: 15px;
             text-align: left;
-            position: relative;
             box-shadow: 0 2px 5px rgba(0,0,0,0.02);
         }
 
@@ -94,9 +116,10 @@
             width: 100%;
             background: var(--input-bg);
             border: none;
-            padding: 10px;
+            padding: 12px;
             border-radius: 10px;
-            font-size: 0.9rem;
+            font-size: 0.85rem;
+            line-height: 1.5;
             color: var(--main) !important;
             word-break: break-all;
             white-space: pre-wrap;
@@ -104,21 +127,21 @@
             -webkit-text-fill-color: var(--main) !important;
             opacity: 1 !important;
             font-family: monospace;
+            box-sizing: border-box;
         }
 
         .copy-btn {
             background: var(--main);
             color: #fff;
             border: none;
-            padding: 4px 12px;
+            padding: 5px 12px;
             border-radius: 10px;
             font-size: 0.7rem;
             font-weight: 700;
             cursor: pointer;
+            transition: background 0.2s;
         }
-        .copy-btn:active { transform: scale(0.95); opacity: 0.8; }
 
-        /* Footer & Buttons */
         footer { margin-top: 50px; font-size: 11px; color: #aaa; line-height: 1.8; }
         footer a { color: inherit; text-decoration: none; }
         .footer-btns { margin-top: 30px; }
@@ -133,7 +156,6 @@
             border-radius: var(--radius); font-weight: 700; font-size: 13px; cursor: pointer;
         }
 
-        /* Modal */
         #modal {
             display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0,0,0,0.6); align-items: center; justify-content: center; z-index: 100;
@@ -154,13 +176,14 @@
     <div class="input-container">
         <label class="label">Paste Text Here</label>
         <textarea id="rawInput" placeholder='e.g. <div class="test"> or &lt;div&gt;' oninput="processText()"></textarea>
+        <button id="clearBtn" class="clear-btn" onclick="clearAll()">clr</button>
     </div>
 
-    <div class="output-grid">
+    <div id="outputGrid" class="output-grid">
         <div class="output-card">
             <div class="output-header">
                 <span class="output-label">HTML Escape</span>
-                <button class="copy-btn" onclick="copyResult('htmlEsc')">Copy</button>
+                <button class="copy-btn" onclick="copyResult(this, 'htmlEsc')">Copy</button>
             </div>
             <div id="htmlEsc" class="output-text"></div>
         </div>
@@ -168,7 +191,7 @@
         <div class="output-card">
             <div class="output-header">
                 <span class="output-label">HTML Unescape</span>
-                <button class="copy-btn" onclick="copyResult('htmlUnesc')">Copy</button>
+                <button class="copy-btn" onclick="copyResult(this, 'htmlUnesc')">Copy</button>
             </div>
             <div id="htmlUnesc" class="output-text"></div>
         </div>
@@ -176,7 +199,7 @@
         <div class="output-card">
             <div class="output-header">
                 <span class="output-label">JS / JSON Escape</span>
-                <button class="copy-btn" onclick="copyResult('jsEsc')">Copy</button>
+                <button class="copy-btn" onclick="copyResult(this, 'jsEsc')">Copy</button>
             </div>
             <div id="jsEsc" class="output-text"></div>
         </div>
@@ -184,7 +207,7 @@
         <div class="output-card">
             <div class="output-header">
                 <span class="output-label">JS / JSON Unescape</span>
-                <button class="copy-btn" onclick="copyResult('jsUnesc')">Copy</button>
+                <button class="copy-btn" onclick="copyResult(this, 'jsUnesc')">Copy</button>
             </div>
             <div id="jsUnesc" class="output-text"></div>
         </div>
@@ -212,12 +235,25 @@
 </div>
 
 <script>
+    const inputArea = document.getElementById('rawInput');
+    const outputGrid = document.getElementById('outputGrid');
+    const clearBtn = document.getElementById('clearBtn');
+
     function processText() {
-        const input = document.getElementById('rawInput').value;
+        const input = inputArea.value;
+
+        // Auto-expand textarea
+        inputArea.style.height = 'auto';
+        inputArea.style.height = inputArea.scrollHeight + 'px';
+
         if (!input) {
-            clearOutputs();
+            outputGrid.classList.remove('active');
+            clearBtn.classList.remove('active');
             return;
         }
+
+        outputGrid.classList.add('active');
+        clearBtn.classList.add('active');
 
         // HTML Escape
         document.getElementById('htmlEsc').innerText = input
@@ -231,34 +267,33 @@
         const doc = new DOMParser().parseFromString(input, 'text/html');
         document.getElementById('htmlUnesc').innerText = doc.documentElement.textContent;
 
-        // JS Escape (Backslash quotes and newlines)
+        // JS Escape
         document.getElementById('jsEsc').innerText = JSON.stringify(input).slice(1, -1);
 
-        // JS Unescape (Reverse of stringify style)
+        // JS Unescape
         try {
-            // Wrapping in quotes to attempt a JSON parse if it looks like an escaped string
-            document.getElementById('jsUnesc').innerText = JSON.parse('"' + input.replace(/"/g, '\\"') + '"').replace(/\\"/g, '"').replace(/\\\\/g, '\\');
-            // Simple fallback for common backslash escapes if JSON parse is overkill
-            if(input.includes('\\')) {
-                 document.getElementById('jsUnesc').innerText = input.replace(/\\n/g, '\n').replace(/\\"/g, '"').replace(/\\'/g, "'").replace(/\\\\/g, '\\');
+            if (input.includes('\\')) {
+                document.getElementById('jsUnesc').innerText = input.replace(/\\n/g, '\n').replace(/\\"/g, '"').replace(/\\'/g, "'").replace(/\\\\/g, '\\').replace(/\\t/g, '\t');
+            } else {
+                document.getElementById('jsUnesc').innerText = input;
             }
         } catch (e) {
             document.getElementById('jsUnesc').innerText = input;
         }
     }
 
-    function clearOutputs() {
-        ['htmlEsc', 'htmlUnesc', 'jsEsc', 'jsUnesc'].forEach(id => {
-            document.getElementById(id).innerText = '';
-        });
+    function clearAll() {
+        inputArea.value = '';
+        inputArea.style.height = '120px';
+        processText();
+        inputArea.focus();
     }
 
-    async function copyResult(id) {
+    async function copyResult(btn, id) {
         const text = document.getElementById(id).innerText;
         if (!text) return;
         try {
             await navigator.clipboard.writeText(text);
-            const btn = event.target;
             const originalText = btn.innerText;
             btn.innerText = 'Copied!';
             btn.style.background = '#4CAF50';
@@ -267,7 +302,7 @@
                 btn.style.background = 'var(--main)';
             }, 1000);
         } catch (err) {
-            console.error('Failed to copy', err);
+            console.error(err);
         }
     }
 
